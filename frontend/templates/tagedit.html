@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-F3w7mX95PdgyTmZZMECAngseQB83DfGTowi0iMjiWaeVhAn4FJkqJByhZMI3AhiU" crossorigin="anonymous">
+
+  <title>線上相簿</title>
+</head>
+
+<body>
+  <main>
+    <div class="row align-items-start" style="padding: 0; margin: 0;">
+      <div class="d-flex flex-column flex-shrink-0 p-3 text-white bg-dark" style="width: 280px; height: 100vh;">
+        <a href="/" class="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-white text-decoration-none">
+          <svg class="bi me-2" width="40" height="32">
+            <use xlink:href="#bootstrap" />
+          </svg>
+          <span class="fs-4">線上相簿</span>
+        </a>
+        <hr>
+        <ul class="nav nav-pills flex-column mb-auto">
+          <li class="nav-item">
+            <a href="/" class="nav-link text-white" aria-current="page">
+              <svg class="bi me-2" width="16" height="16">
+                <use xlink:href="#home" />
+              </svg>
+              相片
+            </a>
+          </li>
+          <li>
+            <a href="/upload" class="nav-link active">
+              <svg class="bi me-2" width="16" height="16">
+                <use xlink:href="#speedometer2" />
+              </svg>
+              上傳
+            </a>
+          </li>
+          <li>
+            <a href="/search" class="nav-link text-white">
+              <svg class="bi me-2" width="16" height="16">
+                <use xlink:href="#table" />
+              </svg>
+              搜尋
+            </a>
+          </li>
+        </ul>
+        <hr>
+      </div>
+      <div class="col" style="width: 280px; height: 99vh;">
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-2 justify-content-md-center" style="height: 100vh;">
+          <div class="col align-self-start" style="margin: 40px; padding: 0 0 0 0;">
+            <div class="card shadow-sm">
+              <img id="targetImage" class="card-img-top"
+                src="https://images.unsplash.com/photo-1575936123452-b67c3203c357?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8aW1hZ2V8ZW58MHx8MHx8fDA%3D&w=1000&q=80"
+                alt="Card image cap">
+              <div class="card-body">
+                <div class="row row-cols-4" id="tag-btns">
+                </div>
+              </div>
+
+              <div class="row mb-3">
+                <div class="col-sm-1 "></div>
+                <div class="col-sm-8 ">
+                  <input id="tagName" class="form-control form-control-sm" id="colFormLabelSm" placeholder="標籤名稱">
+                </div>
+                <button id="addBtn" class="align-items-center col-sm-1 btn btn-sm btn-outline-secondary"
+                  style="padding: 0;">+</button>
+                <button id="deleteBtn" class="align-items-center col-sm-1 btn btn-sm btn-outline-secondary"
+                  style="padding: 0;">-</button>
+                <button id="modifyBtn" class="align-items-center col-sm-1 btn btn-sm btn-outline-secondary"
+                  style="padding: 0;">✎</button>
+                <script>
+                  var selectedTagId = null;
+                  const imageId = decodeURIComponent(location.hash.substring(1));
+                  const parentDiv = document.getElementById("tag-btns");
+                  const targetImage = document.getElementById("targetImage");
+                  const addBtn = document.getElementById("addBtn");
+                  const deleteBtn = document.getElementById("deleteBtn");
+                  const modifyBtn = document.getElementById("modifyBtn");
+                  const tagNameInput = document.getElementById("tagName");
+
+
+                  function loadImageMetaData(imageId) {
+                    parentDiv.innerHTML = "";
+                    fetch(`/api/v1/images/${imageId}`)
+                      .then(res => res.json())
+                      .then(data => {
+                        console.log("filename if we needed:", data.filename);
+                        console.log("tags if we needed:", data.tags);
+                        data.tags.forEach(
+                          item => {
+                            const colDiv = document.createElement("div");
+                            colDiv.className = "col";
+
+                            const button = document.createElement("button");
+                            button.type = "button";
+                            button.className = "btn btn-sm btn-outline-secondary";
+                            button.textContent = item.name;
+
+                            /* 點擊tag選項 則獲取此tag id 傳入search api */
+                            button.addEventListener("click", () => {
+                              console.log("clicked tag id:", item.id);
+                              console.log("clicked tag name:", item.name);
+                              selectedTagId = item.id;
+                            })
+
+                            colDiv.appendChild(button);
+                            parentDiv.appendChild(colDiv);
+                          }
+                        );
+                      })
+                      .catch(err => console.log(err));
+                  }
+
+                  function add_tag(imageId) {
+                    const tagName = tagNameInput.value;
+                    console.log("tagName:", tagName);
+                    if(tagName === "") {
+                      alert("請輸入標籤名稱");
+                      return;
+                    }
+                    fetch(`/api/v1/images/${imageId}/tags`, {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json"
+                      },
+                      body: JSON.stringify({
+                        name: tagName
+                      })
+                    })
+                      .then(res => res.json())
+                      .then(data => {
+                        console.log("data:", data);
+                        loadImageMetaData(imageId);
+                      })
+                      .catch(err => console.log(err));
+                  }
+
+                  function deleteTag(imageId) {
+                    console.log("selectedTagId:", selectedTagId);
+                    fetch(`/api/v1/images/${imageId}/tags/${selectedTagId}`, {
+                      method: "DELETE"
+                    }).then(res => res.status)
+                      .then(status => {
+                        console.log("status:", status);
+                        loadImageMetaData(imageId);
+                      })
+                      .catch(err => console.log(err));
+                  }
+
+                  function replaceTag(imageId) {
+                    const tagName = tagNameInput.value;
+                    if(tagName === "") {
+                      alert("請輸入標籤名稱");
+                      return;
+                    }
+                    fetch(`/api/v1/images/${imageId}/tags`, {
+                      method: "PUT",
+                      headers: {
+                        "Content-Type": "application/json"
+                      },
+                      body: JSON.stringify({
+                        id: selectedTagId,
+                        name: tagName
+                      })
+                    })
+                      .then(res => res.json())
+                      .then(data => {
+                        console.log("data:", data);
+                        loadImageMetaData(imageId);
+                      })
+                      .catch(err => console.log(err));
+                  }
+
+                  targetImage.src = `/view/images/${imageId}`;
+                  loadImageMetaData(imageId);
+
+                  addBtn.addEventListener("click", () => {
+                    add_tag(imageId);
+                  })
+
+                  deleteBtn.addEventListener("click", () => {
+                    deleteTag(imageId);
+                  })
+
+                  modifyBtn.addEventListener("click", () => {
+                    replaceTag(imageId);
+                  })
+                </script>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+
+
+  </main>
+
+
+  <!-- Optional JavaScript; choose one of the two! -->
+
+  <!-- Option 1: Bootstrap Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-/bQdsTh/da6pkI1MST/rWKFNjaCP5gBSY4sEBT38Q/9RBh9AH40zEOg7Hlq2THRZ"
+    crossorigin="anonymous"></script>
+  <script src="../assets/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Option 2: Separate Popper and Bootstrap JS -->
+  <!--
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.10.1/dist/umd/popper.min.js" integrity="sha384-W8fXfP3gkOKtndU4JGtKDvXbO53Wy8SZCQHczT5FMiiqmQfUpWbYdTil/SxwZgAN" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.1/dist/js/bootstrap.min.js" integrity="sha384-skAcpIdS7UcVUC05LJ9Dxay8AXcDYfBJqt1CJ85S/CFujBsIzCIv+l9liuYLaMQ/" crossorigin="anonymous"></script>
+    -->
+</body>
+
+</html>
