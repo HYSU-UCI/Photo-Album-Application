@@ -1,0 +1,26 @@
+[tool.black]
+line-length = 100
+
+[tool.ruff]
+ignore = [
+    "A003",
+    "E402",
+    "E501",
+    "E731",
+    "F405",
+    "F811",
+    "F821",
+    "F841",
+    "W505",
+]
+line-length = 100
+select = [
+    "A",
+    "E",
+    "F",
+    "W",
+]
+
+[tool.isort]
+profile = "black"
+force_single_line = true
